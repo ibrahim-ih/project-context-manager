@@ -1,7 +1,7 @@
 {
   "name": "project-context-manager",
   "displayName": "project-context-manager",
-  "description": "",
+  "description": "A VS Code extension to manage project contexts",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.100.0"
@@ -44,5 +44,5 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2"
   },
-  "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b"
+  "packageManager": "pnpm@10.5.2"
 }
