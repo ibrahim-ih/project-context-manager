@@ -9,13 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:projectContextManager.selectProject"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "project-context-manager.helloWorld",
-        "title": "Hello World"
+        "command": "projectContextManager.selectProject",
+        "title": "Project Context Manager: Select Project"
       }
     ]
   },
