@@ -7,10 +7,15 @@ import * as path from 'path';
  * @param workspacePath The root path to search in.
  * @returns Array of absolute paths to subdirectories.
  */
-function getSubfolders(workspacePath: string): string[] {
-    return fs.readdirSync(workspacePath)
-        .map((name: string): string => path.join(workspacePath, name))
-        .filter((p: string): boolean => fs.existsSync(p) && fs.statSync(p).isDirectory());
+export function getSubfolders(workspacePath: string): string[] {
+    try {
+        return fs.readdirSync(workspacePath)
+            .map((name: string): string => path.join(workspacePath, name))
+            .filter((p: string): boolean => fs.existsSync(p) && fs.statSync(p).isDirectory());
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to read directory ${workspacePath}: ${error}`);
+        return [];
+    }
 }
 
 /**
@@ -38,8 +43,9 @@ function getExtensionsJson(projectPath: string): {
             recommendations: json.recommendations ?? [],
             unwantedRecommendations: json.unwantedRecommendations ?? []
         };
-    } catch (err: any) {
-        vscode.window.showErrorMessage(`Failed to parse .vscode/extensions.json: ${err.message}`);
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to parse .vscode/extensions.json: ${errorMessage}`);
         return { recommendations: [], unwantedRecommendations: [] };
     }
 }
@@ -49,7 +55,7 @@ function getExtensionsJson(projectPath: string): {
  * @param recommended List of extension IDs to recommend.
  * @returns Lists of extensions to enable and disable.
  */
-function analyzeExtensions(recommended: string[]): {
+export function analyzeExtensions(recommended: string[]): {
     toEnable: string[];
     toDisable: string[];
 } {
@@ -64,16 +70,15 @@ function analyzeExtensions(recommended: string[]): {
  * @param toEnable List of extension IDs to enable.
  * @param toDisable List of extension IDs to disable.
  */
-function showExtensionRecommendations(toEnable: string[], toDisable: string[]): void {
+export async function showExtensionRecommendations(toEnable: string[], toDisable: string[]): Promise<void> {
     const enableList: string = toEnable.map((e: string) => `✅ ${e}`).join('\n');
     const disableList: string = toDisable.map((e: string) => `🚫 ${e}`).join('\n');
     const message: string = `Recommended Extensions:\n\nEnable/Install:\n${enableList}\n\nDisable:\n${disableList}`;
 
-    vscode.window.showInformationMessage(message, 'Open Extensions Panel').then((selection: string | undefined) => {
-        if (selection === 'Open Extensions Panel') {
-            void vscode.commands.executeCommand('workbench.view.extensions');
-        }
-    });
+    const selection = await vscode.window.showInformationMessage(message, 'Open Extensions Panel');
+    if (selection === 'Open Extensions Panel') {
+        await vscode.commands.executeCommand('workbench.view.extensions');
+    }
 }
 
 /**
@@ -88,8 +93,19 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
         }
 
-        const rootPath: string = workspaceFolders[0].uri.fsPath;
+        const firstWorkspaceFolder = workspaceFolders[0];
+        if (!firstWorkspaceFolder) {
+            vscode.window.showErrorMessage('No workspace folder is available.');
+            return;
+        }
+
+        const rootPath: string = firstWorkspaceFolder.uri.fsPath;
         const subfolders: string[] = getSubfolders(rootPath);
+
+        if (subfolders.length === 0) {
+            vscode.window.showInformationMessage('No subfolders found in the workspace.');
+            return;
+        }
 
         const selected: string | undefined = await vscode.window.showQuickPick(subfolders, {
             placeHolder: 'Select a project folder'
@@ -98,7 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (selected) {
             const { recommendations } = getExtensionsJson(selected);
             const { toEnable, toDisable } = analyzeExtensions(recommendations);
-            showExtensionRecommendations(toEnable, toDisable);
+            await showExtensionRecommendations(toEnable, toDisable);
         }
     });
 
