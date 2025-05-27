@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - master
       - develop
       - 'feature/*'
       - 'release/*'
@@ -11,7 +11,7 @@ on:
       - 'support/*'
   pull_request:
     branches:
-      - main
+      - master
       - develop
       - 'feature/*'
       - 'release/*'
@@ -47,3 +47,40 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  version-and-publish:
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Bump version and create changelog
+        run: pnpm release
+
+      - name: Push version changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to VS Code Marketplace
+        run: |
+          pnpm add -g vsce
+          vsce publish -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
