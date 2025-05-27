@@ -77,10 +77,3 @@ jobs:
         uses: ad-m/github-push-action@v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to VS Code Marketplace
-        run: |
-          pnpm add -g vsce
-          vsce publish -p ${{ secrets.VSCE_PAT }}
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
